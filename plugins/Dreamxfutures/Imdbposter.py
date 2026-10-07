@@ -491,6 +491,42 @@ async def _fetch_tmdb_data(query: str, api_key=None, file: str = None, season: i
 
     return output_data
 
+def _pick_imdb_candidates(movie_list, title, year_val, bulk=False):
+    """Choose which IMDb search results may be used for a filename's title + year.
+
+    Old behaviour: if nothing matched the year, the WHOLE unfiltered list was used, so a brand
+    new film (e.g. "The Last Treatment 2026", not on IMDb yet) got the first search hit - some
+    other / older title - with the wrong name, year and poster.
+    Now: exact year -> year +-1 -> (TV only) same title, any year -> otherwise NOTHING, and the
+    caller falls back to the file's own thumbnail.  bulk=True (search lists) keeps the old behaviour.
+    """
+    if not year_val:
+        return movie_list
+    try:
+        y = int(year_val)
+    except (TypeError, ValueError):
+        return movie_list
+
+    def _year(m):
+        try:
+            return int(m.year)
+        except (TypeError, ValueError):
+            return None
+
+    exact = [m for m in movie_list if _year(m) == y]
+    if exact:
+        return exact
+    near = [m for m in movie_list if _year(m) is not None and abs(_year(m) - y) <= 1]
+    if near:
+        return near
+    if bulk:
+        return movie_list
+    tv_kinds = ("tv series", "tvseries", "tvminiseries")
+    same_tv = [m for m in movie_list
+               if str(getattr(m, "kind", "") or "").lower() in tv_kinds
+               and SequenceMatcher(None, str(getattr(m, "title", "") or "").lower(), (title or "").lower()).ratio() >= 0.9]
+    return same_tv
+
 
 async def get_movie_details(query, bulk=False, id=False, file=None):
     if not id:
@@ -514,10 +550,7 @@ async def get_movie_details(query, bulk=False, id=False, file=None):
         
         movie_list = search_result.titles[:MAX_LIST_ELM]
         
-        if year_val:
-            filtered = [m for m in movie_list if m.year and str(m.year) == str(year_val)]
-            if not filtered:
-                filtered = movie_list
+        filtered = _pick_imdb_candidates(movie_list, title, year_val, bulk)
         else:
             filtered = movie_list
             
