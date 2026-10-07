@@ -252,7 +252,127 @@ async def _fetch_media_details(media_type: str, media_id: int, api_key=None):
     return await _tmdb_get(f"{media_type}/{media_id}", params=params, api_key=api_key)
 
 
-async def _search_media_id(query: str, api_key=None, file: str = None, is_series: bool | None = None):
+async def _exact_year_movie_search(title, year, api_key=None):
+    """Keeps searching TMDB (several strategies, several pages each) until it finds a MOVIE
+    whose title matches AND whose release year is EXACTLY the filename year.
+    Returns the TMDB movie id, or None when nothing exact exists (caller then falls back
+    to the old fuzzy +-1 year logic). Bounded: at most ~36 search calls in the worst case.
+    """
+    words = title.split()
+    variants = [title]
+    if len(words) > 2:
+        variants.append(" ".join(words[:-1]))      # drop the last word
+    variants = list(dict.fromkeys(v for v in variants if v))
+    # (extra TMDB params, max pages) - tried in this order, stops at the first exact hit
+    strategies = [({'year': year}, 5), ({'primary_release_year': year}, 3), ({}, 10)]
+    seen = set()
+
+    def _ratio(a, b):
+        if not a or not b:
+            return 0
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+    for q in variants:
+        for extra, max_pages in strategies:
+            page = 1
+            while page <= max_pages:
+                params = {'query': q, 'language': 'en-US', 'page': page, 'include_adult': 'false'}
+                params.update(extra)
+                try:
+                    data = await _tmdb_get('search/movie', params=params, api_key=api_key)
+                except Exception:
+                    break
+                matches = []
+                for r in data.get('results') or []:
+                    if r.get('id') in seen:
+                        continue
+                    if (r.get('release_date') or '')[:4] != str(year):
+                        continue
+                    ratio = max(_ratio(title, r.get('title')), _ratio(title, r.get('original_title')))
+                    if ratio < 0.85:
+                        continue
+                    matches.append((ratio, r.get('popularity', 0), r))
+                matches.sort(key=lambda m: (m[0], m[1]), reverse=True)
+                for _ratio_val, _pop, r in matches:
+                    seen.add(r.get('id'))
+                    try:
+                        det = await _tmdb_get(f"movie/{r['id']}", api_key=api_key)
+                    except Exception:
+                        continue
+                    runtime = det.get('runtime')
+                    if det.get('video') or (runtime and runtime < MIN_RUNTIME):
+                        continue
+                    return r['id']
+                if page >= (data.get('total_pages') or 1):
+                    break
+                page += 1
+    return None
+
+
+async def _exact_year_tv_search(title, year, season=None, api_key=None):
+    """Web-series twin of _exact_year_movie_search. Keeps searching TMDB until it finds a TV
+    show whose title matches AND whose year fits the filename year, either as the show's
+    first-air year or (when the season number is known) as THAT SEASON's air year - a file
+    like "Panchayat 2025 S04" carries the season's year, not the show's.
+    Returns the TMDB tv id, or None (caller then uses the old fuzzy logic). Bounded work.
+    """
+    def _ratio(a, b):
+        if not a or not b:
+            return 0
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+    def _good(r):
+        return max(_ratio(title, r.get('name')), _ratio(title, r.get('original_name'))) >= 0.85
+
+    seen, pool = set(), []
+
+    # 1) year-filtered search: first_air_date_year == filename year (exact first-air year)
+    page = 1
+    while page <= 5:
+        try:
+            data = await _tmdb_get('search/tv', params={'query': title, 'language': 'en-US', 'page': page, 'include_adult': 'false', 'first_air_date_year': year}, api_key=api_key)
+        except Exception:
+            break
+        hits = [r for r in (data.get('results') or []) if _good(r) and (r.get('first_air_date') or '')[:4] == str(year)]
+        hits.sort(key=lambda r: r.get('popularity', 0), reverse=True)
+        if hits:
+            return hits[0]['id']
+        if page >= (data.get('total_pages') or 1):
+            break
+        page += 1
+
+    # 2) plain multi-page search; collect every strong title match
+    page = 1
+    while page <= 8:
+        try:
+            data = await _tmdb_get('search/tv', params={'query': title, 'language': 'en-US', 'page': page, 'include_adult': 'false'}, api_key=api_key)
+        except Exception:
+            break
+        for r in data.get('results') or []:
+            if r.get('id') in seen or not _good(r):
+                continue
+            seen.add(r.get('id'))
+            if (r.get('first_air_date') or '')[:4] == str(year):
+                return r['id']
+            pool.append(r)
+        if page >= (data.get('total_pages') or 1):
+            break
+        page += 1
+
+    # 3) the year may belong to the SEASON (not the show): check that season's air date
+    if season:
+        pool.sort(key=lambda r: r.get('popularity', 0), reverse=True)
+        for r in pool[:8]:
+            try:
+                sd = await _tmdb_get(f"tv/{r['id']}/season/{season}", api_key=api_key)
+            except Exception:
+                continue
+            if (sd or {}).get('air_date', '')[:4] == str(year):
+                return r['id']
+    return None
+
+
+async def _search_media_id(query: str, api_key=None, file: str = None, is_series: bool | None = None, season: int | None = None):
     """Search TMDB for the best matching movie/TV show and return (media_type, media_id).
 
     is_series:
@@ -281,6 +401,18 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
     multi_results = []
     words = title.split()
     
+    # Movies with a year in the filename: first keep searching (year-filtered, then
+    # multi-page) until a title + EXACT-year movie is found. Only if none exists on TMDB
+    # do we fall through to the older fuzzy matching below.
+    if year and not is_series:
+        _exact_id = await _exact_year_movie_search(title, year, api_key=api_key)
+        if _exact_id:
+            return 'movie', _exact_id
+    if year and is_series:
+        _tv_id = await _exact_year_tv_search(title, year, season=season, api_key=api_key)
+        if _tv_id:
+            return 'tv', _tv_id
+
     # Generate up to 3 fallback queries to minimize API rate limit usage
     queries_to_try = [title]
     if len(words) > 2:
@@ -300,6 +432,20 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
         multi_results = result.get('results', [])
         if multi_results:
             break
+
+    # Year-aware extra search: a common title like "Monster" has dozens of TMDB hits and
+    # page 1 of search/multi (no year filter) can miss the film whose year matches the
+    # filename, so a same-name film from a neighbouring year (2023) won instead of 2022.
+    if year and not is_series:
+        try:
+            _mv = await _tmdb_get('search/movie', params={'query': title, 'language': 'en-US', 'page': 1, 'include_adult': 'false', 'year': year}, api_key=api_key)
+            _seen = {(x.get('media_type'), x.get('id')) for x in multi_results}
+            for _x in (_mv or {}).get('results', []):
+                _x['media_type'] = 'movie'
+                if ('movie', _x.get('id')) not in _seen:
+                    multi_results.append(_x)
+        except Exception:
+            pass
 
     def get_ratio(s1, s2):
         if not s1 or not s2:
@@ -407,7 +553,7 @@ async def _fetch_tmdb_data(query: str, api_key=None, file: str = None, season: i
     Core TMDB lookup: search → fetch details → build response dict.
     This replaces the external tmdb.blazeposters.workers.dev API call.
     """
-    media_type, media_id = await _search_media_id(query, api_key=api_key, file=file, is_series=is_series)
+    media_type, media_id = await _search_media_id(query, api_key=api_key, file=file, is_series=is_series, season=season)
     if not media_id:
         return None
 
