@@ -551,8 +551,7 @@ async def get_movie_details(query, bulk=False, id=False, file=None):
         movie_list = search_result.titles[:MAX_LIST_ELM]
         
         filtered = _pick_imdb_candidates(movie_list, title, year_val, bulk)
-        else:
-            filtered = movie_list
+        
             
         kind_filter = ['movie', 'tv series', 'tvSeries', 'tvMiniSeries', 'tvMovie']
         filtered_kind = [m for m in filtered if m.kind and m.kind in kind_filter]
