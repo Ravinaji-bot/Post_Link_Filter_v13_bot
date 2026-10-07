@@ -526,7 +526,6 @@ def get_languages_html(file_name, caption=None):
     if not found:
         return ""
         return "<blockquote><b>🔊 " + " ".join(f"#{l}" for l in found) + "</b></blockquote>"
-
 VLC_NOTE_HTML = (
     '<blockquote>⚠️ Use <a href="https://www.videolan.org/vlc/">VLC Player</a> '
     'to avoid sound issues &amp; switch languages.</blockquote>'
