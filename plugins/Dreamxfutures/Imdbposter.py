@@ -202,6 +202,21 @@ def _list_to_str_tmdb(data_list, limit=10, key=None):
     return ", ".join(str(item) for item in items if item)
 
 
+_LANG_MAP = {
+    'hindi': 'hi', 'kannada': 'kn', 'tamil': 'ta', 'telugu': 'te',
+    'malayalam': 'ml', 'bengali': 'bn', 'punjabi': 'pa', 'marathi': 'mr',
+    'gujarati': 'gu', 'english': 'en', 'korean': 'ko', 'japanese': 'ja',
+    'spanish': 'es', 'french': 'fr', 'russian': 'ru', 'thai': 'th',
+}
+
+
+def _language_codes(text):
+    """File name / query se bhasha nikalta hai: '[Hindi - Kannada]' -> {'hi', 'kn'}"""
+    t = (text or '').lower()
+    return {code for name, code in _LANG_MAP.items()
+            if re.search(r'\b' + name + r'\b', t)}
+
+
 def _extract_title_and_year(query: str):
     """Extract title and optional year from a search query string.
 
@@ -252,11 +267,13 @@ async def _fetch_media_details(media_type: str, media_id: int, api_key=None):
     return await _tmdb_get(f"{media_type}/{media_id}", params=params, api_key=api_key)
 
 
-async def _exact_year_movie_search(title, year, api_key=None):
+async def _exact_year_movie_search(title, year, api_key=None, lang_codes=None):
     """Keeps searching TMDB (several strategies, several pages each) until it finds a MOVIE
     whose title matches AND whose release year is EXACTLY the filename year.
+    lang_codes (e.g. {'hi','kn'}) = languages found in the filename; a film whose original
+    language is in this set is preferred over a same-name, same-year film of another language.
     Returns the TMDB movie id, or None when nothing exact exists (caller then falls back
-    to the old fuzzy +-1 year logic). Bounded: at most ~36 search calls in the worst case.
+    to the old fuzzy +-1 year logic).
     """
     words = title.split()
     variants = [title]
@@ -266,6 +283,7 @@ async def _exact_year_movie_search(title, year, api_key=None):
     # (extra TMDB params, max pages) - tried in this order, stops at the first exact hit
     strategies = [({'year': year}, 5), ({'primary_release_year': year}, 3), ({}, 10)]
     seen = set()
+    fallback_id = None   # same name + year, but language did not match
 
     def _ratio(a, b):
         if not a or not b:
@@ -302,18 +320,28 @@ async def _exact_year_movie_search(title, year, api_key=None):
                     runtime = det.get('runtime')
                     if det.get('video') or (runtime and runtime < MIN_RUNTIME):
                         continue
+                    # language check: filename says Hindi-Kannada -> skip an 'en' film
+                    orig_lang = r.get('original_language') or det.get('original_language')
+                    if lang_codes and orig_lang not in lang_codes:
+                        if fallback_id is None:
+                            fallback_id = r['id']
+                        continue
                     return r['id']
                 if page >= (data.get('total_pages') or 1):
                     break
                 page += 1
-    return None
+            # one strategy finished without a language match -> use the first name+year hit
+            if fallback_id:
+                return fallback_id
+    return fallback_id
 
 
-async def _exact_year_tv_search(title, year, season=None, api_key=None):
+async def _exact_year_tv_search(title, year, season=None, api_key=None, lang_codes=None):
     """Web-series twin of _exact_year_movie_search. Keeps searching TMDB until it finds a TV
     show whose title matches AND whose year fits the filename year, either as the show's
     first-air year or (when the season number is known) as THAT SEASON's air year - a file
     like "Panchayat 2025 S04" carries the season's year, not the show's.
+    lang_codes = languages found in the filename; same-language shows are preferred.
     Returns the TMDB tv id, or None (caller then uses the old fuzzy logic). Bounded work.
     """
     def _ratio(a, b):
@@ -324,7 +352,12 @@ async def _exact_year_tv_search(title, year, season=None, api_key=None):
     def _good(r):
         return max(_ratio(title, r.get('name')), _ratio(title, r.get('original_name'))) >= 0.85
 
+    def _lang_ok(r):
+        # language unknown -> everything is fine
+        return (not lang_codes) or (r.get('original_language') in lang_codes)
+
     seen, pool = set(), []
+    fallback_id = None   # name + year match, language did not match
 
     # 1) year-filtered search: first_air_date_year == filename year (exact first-air year)
     page = 1
@@ -335,11 +368,16 @@ async def _exact_year_tv_search(title, year, season=None, api_key=None):
             break
         hits = [r for r in (data.get('results') or []) if _good(r) and (r.get('first_air_date') or '')[:4] == str(year)]
         hits.sort(key=lambda r: r.get('popularity', 0), reverse=True)
-        if hits:
-            return hits[0]['id']
+        for r in hits:
+            if _lang_ok(r):
+                return r['id']
+            if fallback_id is None:
+                fallback_id = r['id']
         if page >= (data.get('total_pages') or 1):
             break
         page += 1
+    if fallback_id:
+        return fallback_id
 
     # 2) plain multi-page search; collect every strong title match
     page = 1
@@ -353,15 +391,21 @@ async def _exact_year_tv_search(title, year, season=None, api_key=None):
                 continue
             seen.add(r.get('id'))
             if (r.get('first_air_date') or '')[:4] == str(year):
-                return r['id']
+                if _lang_ok(r):
+                    return r['id']
+                if fallback_id is None:
+                    fallback_id = r['id']
+                continue
             pool.append(r)
         if page >= (data.get('total_pages') or 1):
             break
         page += 1
+    if fallback_id:
+        return fallback_id
 
-    # 3) the year may belong to the SEASON (not the show): check that season's air date
+    # 3) the year may belong to the SEASON (not the show): same-language shows first
     if season:
-        pool.sort(key=lambda r: r.get('popularity', 0), reverse=True)
+        pool.sort(key=lambda r: (_lang_ok(r), r.get('popularity', 0)), reverse=True)
         for r in pool[:8]:
             try:
                 sd = await _tmdb_get(f"tv/{r['id']}/season/{season}", api_key=api_key)
@@ -398,6 +442,8 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
     if is_series is None:
         is_series = bool(re.search(r'[Ss]\d{1,2}\s?[Ee]\d{1,3}|\bSeason\s?\d{1,2}\b|\bS\d{1,2}\b', file or query, re.IGNORECASE))
 
+    _langs = _language_codes(file or query)
+
     multi_results = []
     words = title.split()
     
@@ -405,11 +451,11 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
     # multi-page) until a title + EXACT-year movie is found. Only if none exists on TMDB
     # do we fall through to the older fuzzy matching below.
     if year and not is_series:
-        _exact_id = await _exact_year_movie_search(title, year, api_key=api_key)
+        _exact_id = await _exact_year_movie_search(title, year, api_key=api_key, lang_codes=_langs)
         if _exact_id:
             return 'movie', _exact_id
     if year and is_series:
-        _tv_id = await _exact_year_tv_search(title, year, season=season, api_key=api_key)
+        _tv_id = await _exact_year_tv_search(title, year, season=season, api_key=api_key, lang_codes=_langs)
         if _tv_id:
             return 'tv', _tv_id
 
@@ -508,7 +554,8 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
         # the exact same title (e.g. "Monster" 2004 anime vs a 2022+ series), the one
         # whose year is closest to the filename year should win.
         year_gap = abs(rd_date.year - year) if year else 0
-        candidate = {'type': mtype, 'id': r['id'], 'date': rd_date, 'score': r.get('popularity', 0), 'ratio': ratio, 'year_exact': year_exact, 'year_gap': year_gap}
+        _lang_ok = (not _langs) or (r.get('original_language') in _langs)
+        candidate = {'type': mtype, 'id': r['id'], 'date': rd_date, 'score': r.get('popularity', 0), 'ratio': ratio, 'year_exact': year_exact, 'year_gap': year_gap, 'lang_ok': _lang_ok}
         (candidates_upcoming if rd_date > today else candidates_past).append(candidate)
         
     # Series: the filename year (e.g. "Monster (2004) S01" vs "Monster (2026) S01") decides
@@ -524,8 +571,8 @@ async def _search_media_id(query: str, api_key=None, file: str = None, is_series
     # (not just "closer date"), then popularity. Sorting by raw date here used
     # to mean the more recent of two similarly-titled results could win even
     # when the OTHER one was the exact year from the filename - fixed now.
-    candidates_past.sort(key=lambda x: (x['ratio'], x['year_exact'], -x['year_gap'], x['score']), reverse=True)
-    candidates_upcoming.sort(key=lambda x: (x['ratio'], x['year_exact'], -x['year_gap'], x['score']), reverse=True)
+    candidates_past.sort(key=lambda x: (x['ratio'], x['year_exact'], x['lang_ok'], -x['year_gap'], x['score']), reverse=True)
+    candidates_upcoming.sort(key=lambda x: (x['ratio'], x['year_exact'], x['lang_ok'], -x['year_gap'], x['score']), reverse=True)
     final = candidates_past or candidates_upcoming
     if not final:
         return None, None
