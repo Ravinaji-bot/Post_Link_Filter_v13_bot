@@ -269,8 +269,8 @@ Nᴀᴍᴇ : {}
 
 Mᴇꜱꜱᴀɢᴇ : <b>{}</b>"""
     
-        CAPTION = """<b><a href="https://t.me/Requiest_your_faw">{file_name}</a></b>\n\n<b>🐉 Powered By : <a href="https://t.me/DragonFireWorld">[ DragonFireWorld ]</a></b>\n\n<b>➥ 𝑫𝒓𝒂𝒈𝒐𝒏𝑭𝒊𝒓𝒆𝑾𝒐𝒓𝒍𝒅</b>"""
-    
+    CAPTION = """<b><a href="https://t.me/Requiest_your_faw">{file_name}</a></b>\n\n<b>🐉 Powered By : <a href="https://t.me/DragonFireWorld">[ DragonFireWorld ]</a></b>\n\n<b>➥ 𝑫𝒓𝒂𝒈𝒐𝒏𝑭𝒊𝒓𝒆𝑾𝒐𝒓𝒍𝒅</b>"""
+
     MOVIE_UPDATE_NOTIFY_TXT = """
 </b><a href={poster_url}>📥</a><a href={imdb_url}>New {tag} Added</a></b>
 
