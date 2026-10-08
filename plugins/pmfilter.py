@@ -901,7 +901,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await Media2.collection.drop()
         await query.answer("Eᴠᴇʀʏᴛʜɪɴɢ's Gᴏɴᴇ")
         await query.message.edit('ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ ᴀʟʟ ɪɴᴅᴇxᴇᴅ ꜰɪʟᴇꜱ ✅')
-
+    elif query.data == "fsubgate":
+        btn = await get_fsub_buttons(client, query.from_user.id)
+        if btn:
+            btn.append([InlineKeyboardButton("♻️ ᴛʀʏ ᴀɢᴀɪɴ ♻️", callback_data="fsubgate")])
+            try:
+                await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
+            except (MessageNotModified, MessageIdInvalid):
+                pass
+            return await query.answer("🛑 Pehle sabhi channel join kijiye, phir Try Again dabaiye.", show_alert=True)
+        await query.answer("✅ Thank you! Ab /start bhejiye ya movie ka naam likhiye.", show_alert=True)
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
     elif query.data.startswith("checksub"):
         try:
             ident, kk, file_id = query.data.split("#")
