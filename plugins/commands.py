@@ -276,7 +276,7 @@ async def start(client, message):
                 PIC = PICS[0]
             else:
                 try:      
-                    PIC = f"{random.choice(PICS_URL)}?r={get_random_mix_id()}"
+                                        PIC = random.choice(PICS)
                 except Exception:
                     PIC = random.choice(PICS)
             home_msg = await message.reply_photo(
@@ -313,7 +313,7 @@ async def start(client, message):
                 PIC = PICS[0]
             else:
                 try:
-                    PIC = f"{random.choice(PICS_URL)}?r={get_random_mix_id()}"
+                                        PIC = random.choice(PICS)
                 except Exception:
                     PIC = random.choice(PICS)
             home_msg = await message.reply_photo(
