@@ -1209,7 +1209,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 PIC = PICS[0]
             else:
                 try:
-                    PIC = f"{random.choice(PICS_URL)}?r={get_random_mix_id()}"
+                                        PIC = random.choice(PICS)
                 except Exception:
                     PIC = random.choice(PICS)
             await client.edit_message_media(
