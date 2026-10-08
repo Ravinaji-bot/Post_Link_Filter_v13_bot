@@ -43,8 +43,8 @@ COVERX = is_enabled(environ.get('COVERX', "True"), True) # Use cover image for i
 AUTO_POSTER_THUMB = is_enabled(environ.get('AUTO_POSTER_THUMB', "True"), True) # Replace the file's own (often branded) cover/thumbnail with the movie's clean TMDB/IMDB landscape poster when delivering to users
 # If you disable it then bot will use a default thumb for all files
 
-PICS_URL = (environ.get('PICS', 'https://api.aniwallpaper.workers.dev/random?type=girl')).split() #random anime girl img each time from aniwallpaper (Experimental)
-PICS = (environ.get('PICS', 'https://graph.org/file/56b5deb73f3b132e2bb73.jpg https://graph.org/file/5303692652d91d52180c2.jpg https://graph.org/file/425b6f46efc7c6d64105f.jpg https://graph.org/file/876867e761c6c7a29855b.jpg')).split()  # Sample pic
+PICS_URL = (environ.get('PICS', 'https://i.ibb.co/gXKFr43/photo-2026-10-08-19-19-50-7694378913727774736.jpg https://i.ibb.co/KjRtcnKd/photo-2026-10-08-19-19-41-7694378870778101776.jpg https://i.ibb.co/232g4fG7/photo-2026-10-08-19-12-47-7694378793468690448.jpg')).split()
+PICS = (environ.get('PICS', 'https://i.ibb.co/gXKFr43/photo-2026-10-08-19-19-50-7694378913727774736.jpg https://i.ibb.co/KjRtcnKd/photo-2026-10-08-19-19-41-7694378870778101776.jpg https://i.ibb.co/232g4fG7/photo-2026-10-08-19-12-47-7694378793468690448.jpg')).split()
 NOR_IMG = environ.get("NOR_IMG", "https://graph.org/file/e20b5fdaf217252964202.jpg")
 MELCOW_PHOTO = environ.get("MELCOW_PHOTO", "https://graph.org/file/56b5deb73f3b132e2bb73.jpg")
 SPELL_IMG = environ.get("SPELL_IMG", "https://graph.org/file/13702ae26fb05df52667c.jpg")
