@@ -97,6 +97,8 @@ async def pm_text(bot, message):
             pass
     if content.startswith(("#")):
         return
+    if not await fsub_gate(bot, message):
+        return
     try:
         await mdb.update_top_messages(user_id, content)
         pm_search = await db.pm_search_status(bot_id)
