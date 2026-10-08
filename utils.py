@@ -1291,3 +1291,43 @@ async def get_cap(settings, remaining_seconds, files, query, total_results, sear
     except Exception as e:
         logger.error(f"Error in get_cap: {e}")
         pass
+
+async def get_fsub_buttons(client, user_id):
+    from info import AUTH_CHANNELS, AUTH_REQ_CHANNELS, ADMINS
+    if user_id in ADMINS:
+        return []
+    if not AUTH_CHANNELS and not AUTH_REQ_CHANNELS:
+        return []
+    if await db.has_premium_access(user_id):
+        return []
+    btn = []
+    if AUTH_CHANNELS:
+        btn += await is_subscribed(client, user_id, AUTH_CHANNELS)
+    if AUTH_REQ_CHANNELS:
+        btn += await is_req_subscribed(client, user_id, AUTH_REQ_CHANNELS)
+    return btn
+
+
+async def fsub_gate(client, message):
+    from info import FSUB_PICS
+    from pyrogram.types import InlineKeyboardMarkup
+    if not message.from_user:
+        return True
+    try:
+        btn = await get_fsub_buttons(client, message.from_user.id)
+    except Exception as e:
+        logger.warning("fsub_gate check failed: %s", e)
+        return True
+    if not btn:
+        return True
+    btn.append([InlineKeyboardButton("♻️ ᴛʀʏ ᴀɢᴀɪɴ ♻️", callback_data="fsubgate")])
+    markup = InlineKeyboardMarkup(btn)
+    text = script.FORCESUB_TXT.format(message.from_user.mention)
+    try:
+        await message.reply_photo(
+            photo=random.choice(FSUB_PICS) if FSUB_PICS else "https://graph.org/file/7478ff3eac37f4329c3d8.jpg",
+            caption=text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+    except Exception:
+        await message.reply_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+    return False
+    
