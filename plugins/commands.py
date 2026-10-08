@@ -28,6 +28,7 @@ from info import (
     TMDB_POSTER, FILE_DELETE_TIME, START_CMD_DELETE_TIME, START_HOME_DELETE_TIME,
 )
 from utils import get_settings, save_group_settings, is_subscribed, is_req_subscribed, get_size, get_shortlink, is_check_admin, temp, get_readable_time, get_time, generate_settings_text, log_error, clean_filename, get_random_mix_id, get_poster, get_posterx, get_landscape_thumb, get_languages_html, VLC_NOTE_HTML
+from utils import fsub_gate
 from plugins.file_caption import get_file_caption
 from plugins.channel import extract_media_info, build_post_caption, build_post_buttons, get_post_format
 from dreamxbotz.util.postcard import _send_post_poster_below, archive_and_delete_post
@@ -252,6 +253,8 @@ async def start(client, message):
             await db.add_user(message.from_user.id, message.from_user.first_name)
             await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
         if len(message.command) != 2:
+            if not await fsub_gate(client, message):
+                return
             buttons = [[
                         InlineKeyboardButton('✧ 𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩 ✧', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
                     ],[
