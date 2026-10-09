@@ -1324,11 +1324,11 @@ async def fsub_gate(client, message):
     markup = InlineKeyboardMarkup(btn)
     text = script.FORCESUB_TXT.format(message.from_user.mention)
     try:
-        raise RuntimeError("photo off")
-        await message.reply_photo(
-            photo=random.choice(FSUB_PICS) if FSUB_PICS else "https://graph.org/file/7478ff3eac37f4329c3d8.jpg",
-            caption=text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        sent = await message.reply_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
     except Exception:
-        await message.reply_text(text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
+        return False
+    from info import START_CMD_DELETE_TIME, START_HOME_DELETE_TIME
+    asyncio.create_task(_del_later(message, START_CMD_DELETE_TIME))
+    asyncio.create_task(_del_later(sent, START_HOME_DELETE_TIME))
     return False
     
