@@ -1307,7 +1307,13 @@ async def get_fsub_buttons(client, user_id):
         btn += await is_req_subscribed(client, user_id, AUTH_REQ_CHANNELS)
     return btn
 
-
+async def _del_later(msg, delay):
+    await asyncio.sleep(delay)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
+        
 async def fsub_gate(client, message):
     from info import FSUB_PICS
     from pyrogram.types import InlineKeyboardMarkup
