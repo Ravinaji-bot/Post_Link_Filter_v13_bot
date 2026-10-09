@@ -1324,6 +1324,7 @@ async def fsub_gate(client, message):
     markup = InlineKeyboardMarkup(btn)
     text = script.FORCESUB_TXT.format(message.from_user.mention)
     try:
+        raise RuntimeError("photo off")
         await message.reply_photo(
             photo=random.choice(FSUB_PICS) if FSUB_PICS else "https://graph.org/file/7478ff3eac37f4329c3d8.jpg",
             caption=text, reply_markup=markup, parse_mode=enums.ParseMode.HTML)
