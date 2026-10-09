@@ -148,6 +148,11 @@ async def _countdown_delete(client, chat_id, msgs, deleted_text, seconds=None):
             await notice.edit_text(deleted_text, parse_mode=enums.ParseMode.HTML)
         except Exception:
             pass
+        await asyncio.sleep(30)
+        try:
+            await notice.delete()
+        except Exception:
+            pass
 
 
 POSTCARD_DELETE_TIME = 180  # PM post auto-deletes after 3 minutes
