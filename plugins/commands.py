@@ -329,6 +329,9 @@ async def start(client, message):
             )
             _schedule_start_cleanup(message, home_msg)
             return
+        _t = asyncio.create_task(_delete_later(message, FILE_DELETE_TIME + 10))
+        _cleanup_tasks.add(_t)
+        _t.add_done_callback(_cleanup_tasks.discard)
         if message.command[1].startswith("reff_"):
             try:
                 user_id = int(message.command[1].split("_")[1])
