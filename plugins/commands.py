@@ -856,6 +856,8 @@ async def settings(client, message):
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
                 parse_mode=enums.ParseMode.HTML
         )
+        _spawn(_delete_later(menu_msg, 60))
+        _spawn(_delete_later(message, 60))
     elif chat_type == enums.ChatType.PRIVATE:
         connected_groups = await db.get_connected_grps(user_id)
         if not connected_groups:
