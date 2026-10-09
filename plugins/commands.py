@@ -843,14 +843,17 @@ async def settings(client, message):
     if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         grp_id = message.chat.id
         if not await is_check_admin(client, grp_id, message.from_user.id):
-            return await message.reply_text(script.NT_ADMIN_ALRT_TXT)
+            warn = await message.reply_text(script.NT_ADMIN_ALRT_TXT)
+            _spawn(_delete_later(warn, 15))
+            _spawn(_delete_later(message, 15))
+            return
         await db.connect_group(grp_id, user_id)
         btn = [[
                 InlineKeyboardButton("👤 ᴏᴘᴇɴ ɪɴ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ 👤", callback_data=f"opnsetpm#{grp_id}")
               ],[
                 InlineKeyboardButton("👥 ᴏᴘᴇɴ ʜᴇʀᴇ 👥", callback_data=f"opnsetgrp#{grp_id}")
               ]]
-        await message.reply_text(
+        menu_msg = await message.reply_text(
                 text="<b>ᴡʜᴇʀᴇ ᴅᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴏᴘᴇɴ ꜱᴇᴛᴛɪɴɢꜱ ᴍᴇɴᴜ ? ⚙️</b>",
                 reply_markup=InlineKeyboardMarkup(btn),
                 link_preview_options=LinkPreviewOptions(is_disabled=True),
