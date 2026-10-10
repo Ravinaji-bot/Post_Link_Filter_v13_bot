@@ -17,6 +17,18 @@ async def _send_post_poster_below(client, chat_id, poster, caption, post_btn, sp
     Returns the sent message, or None if nothing could be sent with a poster."""
     if not poster:
         return None
+    # Channel-post style: poster shown as a link preview BELOW the text
+    if POSTCARD_PREVIEW and isinstance(poster, str) and poster.startswith("http"):
+        try:
+            return await client.send_message(
+                chat_id=chat_id,
+                text=f"<a href='{poster}'>&#8205;</a>{caption}",
+                reply_markup=post_btn,
+                parse_mode=enums.ParseMode.HTML,
+                link_preview_options=LinkPreviewOptions(is_disabled=False, show_above_text=False),
+            )
+        except Exception as e:
+            logger.warning("postcard: link-preview send failed, trying photo: %s", e)
     common = dict(chat_id=chat_id, photo=poster, caption=caption, reply_markup=post_btn,
                   parse_mode=enums.ParseMode.HTML, has_spoiler=spoiler)
     try:
