@@ -5,7 +5,7 @@ import logging
 from pyrogram import enums
 from pyrogram.errors import FloodWait
 from pyrogram.types import LinkPreviewOptions
-from info import TMDB_POSTER, RESULT_ARCHIVE_CHANNEL, POST_ARCHIVE_BEFORE, POSTCARD_LANDSCAPE
+from info import TMDB_POSTER, RESULT_ARCHIVE_CHANNEL, POST_ARCHIVE_BEFORE, POSTCARD_LANDSCAPE, POSTCARD_PREVIEW
 from utils import get_poster, get_posterx, temp
 from plugins.channel import extract_media_info, build_post_caption, build_post_buttons, get_post_format
 
