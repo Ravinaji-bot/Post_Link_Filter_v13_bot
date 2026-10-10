@@ -1768,7 +1768,7 @@ async def auto_filter(client, msg, spoll=False):
                     for idx, file in enumerate(files, start=1):
                         cap += f"<b>\n{idx}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>[{get_size(file.file_size)}] {clean_filename(file.file_name)}\n</a></b>"
         if message.chat.id < 0:
-            cap = strip_cap_header(cap)              cap += f"<b>\n{idx}. <a href='https://telegram.me/{temp.U_NAME}?start=file_{message.chat.id}_{file.file_id}'>[{get_size(file.file_size)}] {clean_filename(file.file_name)}\n</a></b>"
+            cap = strip_cap_header(cap)
         sent = None
         try:
             if imdb and imdb.get('poster'):
