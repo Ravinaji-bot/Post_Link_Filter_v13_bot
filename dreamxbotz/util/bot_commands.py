@@ -2,7 +2,7 @@ import logging
 from pyrogram.types import (
     BotCommand, BotCommandScopeDefault, BotCommandScopeChat, BotCommandScopeAllChatAdministrators,
 )
-from info import ADMINS, OWNER_IDS, USER_CMDS, GROUP_ADMIN_CMDS, ADMIN_CMDS, OWNER_CMDS
+from info import ADMINS, OWNER_IDS, USER_CMDS, GROUP_ADMIN_CMDS, ADMIN_CMDS, OWNER_CMDS, HIDE_USER_COMMANDS
 
 logger = logging.getLogger(__name__)
 
