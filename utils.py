@@ -1167,6 +1167,11 @@ def clean_search_text(search_raw: str) -> str:
     else:
         return ""
 
+def strip_cap_header(cap):
+    """Group search caption: keep only the "Your Requested Files Are Here" line
+    (title / total files / result in / requested by / powered by lines are removed)."""
+    return re.sub(r"<b>🏷.*?(?=<u>Your Requested Files Are Here</u>)", "<b>", cap, count=1, flags=re.S)
+    
 async def get_cap(settings, remaining_seconds, files, query, total_results, search, offset=0):
     try:
         if settings["imdb"]:
@@ -1287,6 +1292,8 @@ async def get_cap(settings, remaining_seconds, files, query, total_results, sear
                             f"{clean_filename(file.file_name)}\n\n"
                             f"</a></b>"
                         )
+        if query.message.chat.id < 0:
+            cap = strip_cap_header(cap)
         return cap
     except Exception as e:
         logger.error(f"Error in get_cap: {e}")
