@@ -27,7 +27,11 @@ async def set_role_commands(client):
     Returns the number of scopes that were updated.
     """
     done = 0
-    await client.set_bot_commands(_cmds(USER_CMDS), scope=BotCommandScopeDefault())
+    if HIDE_USER_COMMANDS:
+        # normal users see no "/" menu at all (admins / owners keep theirs below)
+        await client.delete_bot_commands(scope=BotCommandScopeDefault())
+    else:
+        await client.set_bot_commands(_cmds(USER_CMDS), scope=BotCommandScopeDefault())
     done += 1
     await client.set_bot_commands(_cmds(USER_CMDS, GROUP_ADMIN_CMDS), scope=BotCommandScopeAllChatAdministrators())
     done += 1
