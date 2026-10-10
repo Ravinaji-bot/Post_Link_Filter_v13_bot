@@ -5,7 +5,7 @@ import logging
 from pyrogram import enums
 from pyrogram.errors import FloodWait
 from pyrogram.types import LinkPreviewOptions
-from info import TMDB_POSTER, RESULT_ARCHIVE_CHANNEL, POST_ARCHIVE_BEFORE
+from info import TMDB_POSTER, RESULT_ARCHIVE_CHANNEL, POST_ARCHIVE_BEFORE, POSTCARD_LANDSCAPE
 from utils import get_poster, get_posterx, temp
 from plugins.channel import extract_media_info, build_post_caption, build_post_buttons, get_post_format
 
@@ -86,7 +86,7 @@ async def send_search_postcard(client, chat_id, files, tenbit=False):
         caption = build_post_caption(movie_doc, base_name, fmt, tenbit)
         post_btn = build_post_buttons(fmt)
         sent = await _send_post_poster_below(
-            client, chat_id, imdb_data.get("poster"), caption, post_btn, fmt.get("spoiler", False))
+                        client, chat_id, (imdb_data.get("backdrop") if POSTCARD_LANDSCAPE else None) or imdb_data.get("poster"), caption, post_btn, fmt.get("spoiler", False))
         if sent is None:
             sent = await client.send_message(
                 chat_id=chat_id, text=caption, reply_markup=post_btn,
