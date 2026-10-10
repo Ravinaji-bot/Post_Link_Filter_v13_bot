@@ -172,6 +172,7 @@ MSG_ALRT = environ.get('MSG_ALRT', 'Share & Support Us ♥️') # Alert message 
 FILE_DELETE_TIME = max(10, int(environ.get("FILE_DELETE_TIME", "50")) // 10 * 10)  # delivered file auto-delete; countdown shows 50s,40s,... (10s steps)
 DELETE_TIME = int(environ.get("DELETE_TIME", "300"))  #  deletion time in seconds (default: 5 minutes). Adjust as per your needs.
 START_CMD_DELETE_TIME = int(environ.get("START_CMD_DELETE_TIME", "3"))     # user's /start message is deleted after this many seconds (default: 3)
+POSTCARD_LANDSCAPE = is_enabled(environ.get("POSTCARD_LANDSCAPE", "True"), True)  # True = post card mein landscape, False = portrait poster
 START_HOME_DELETE_TIME = int(environ.get("START_HOME_DELETE_TIME", "300"))  # bot's /start home message is deleted after this many seconds (default: 5 minutes)
 CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")   # Custom caption for files
 BATCH_FILE_CAPTION = environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION) # Custom caption for batch files
