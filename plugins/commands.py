@@ -26,6 +26,7 @@ from info import (
     COVERX, PROTECT_CONTENT, DELETE_TIME, PREMIUM_STREAM_MODE, STREAM_MODE, SUPPORT_CHAT_ID, REQST_CHANNEL,
     LOG_CHANNEL, SHORTENER_API, SHORTENER_API2, SHORTENER_API3, SHORTENER_WEBSITE, SHORTENER_WEBSITE2, SHORTENER_WEBSITE3,
     TMDB_POSTER, FILE_DELETE_TIME, START_CMD_DELETE_TIME, START_HOME_DELETE_TIME,
+    POSTCARD_LANDSCAPE,
 )
 from utils import get_settings, save_group_settings, is_subscribed, is_req_subscribed, get_size, get_shortlink, is_check_admin, temp, get_readable_time, get_time, generate_settings_text, log_error, clean_filename, get_random_mix_id, get_poster, get_posterx, get_landscape_thumb, get_languages_html, VLC_NOTE_HTML
 from utils import fsub_gate
@@ -589,7 +590,7 @@ async def start(client, message):
                     imdb_data = None
                 genres = (imdb_data or {}).get("genres") or "N/A"
                 year = (imdb_data or {}).get("year")
-                poster = (imdb_data or {}).get("poster")
+                poster = ((imdb_data or {}).get("backdrop") if POSTCARD_LANDSCAPE else None) or (imdb_data or {}).get("poster")
                 movie_doc = {"files": movie_files, "genres": genres, "year": year}
                 fmt = await get_post_format(temp.ME)
                 caption = build_post_caption(movie_doc, base_name, fmt)
