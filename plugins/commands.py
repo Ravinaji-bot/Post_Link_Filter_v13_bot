@@ -102,8 +102,12 @@ def _spawn(coro):
     return t
 
 
-def _countdown_text(sec):
-    return f"⚠️ Deleting in <b>{sec}s</b>, save quickly…"
+_MOVE_STEPS = (0, 3, 6, 3)  # har 10s update par aage kitne blank chars: text right jayega, phir wapas left
+
+
+def _countdown_text(sec, step=0):
+    pad = "\u2800" * _MOVE_STEPS[step % len(_MOVE_STEPS)]
+    return f"{pad}⚠️ Deleting in <b>{sec}s</b>, save quickly…"
 
 
 async def _countdown_delete(client, chat_id, msgs, deleted_text, seconds=None):
@@ -126,11 +130,13 @@ async def _countdown_delete(client, chat_id, msgs, deleted_text, seconds=None):
         except TypeError:
             notice = await msgs[-1].reply_text(_countdown_text(seconds), parse_mode=enums.ParseMode.HTML)
         remaining = seconds
+        step = 0
         while remaining > 10:
             await asyncio.sleep(10)
             remaining -= 10
+            step += 1
             try:
-                await notice.edit_text(_countdown_text(remaining), parse_mode=enums.ParseMode.HTML)
+                await notice.edit_text(_countdown_text(remaining, step), parse_mode=enums.ParseMode.HTML)
             except FloodWait as e:
                 await asyncio.sleep(e.value)
             except Exception as e:
