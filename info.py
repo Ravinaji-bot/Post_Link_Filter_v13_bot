@@ -175,6 +175,7 @@ START_CMD_DELETE_TIME = int(environ.get("START_CMD_DELETE_TIME", "3"))     # use
 POSTCARD_LANDSCAPE = is_enabled(environ.get("POSTCARD_LANDSCAPE", "True"), True)  # True = post card mein landscape, False = portrait poster
 POSTCARD_PREVIEW = is_enabled(environ.get("POSTCARD_PREVIEW", "True"), True)
 HIDE_USER_COMMANDS = is_enabled(environ.get("HIDE_USER_COMMANDS", "True"), True)
+USER_MSG_DELETE_TIME = int(environ.get("USER_MSG_DELETE_TIME", "5"))  # group: user ka search message itne second baad delete (0 = band)
 START_HOME_DELETE_TIME = int(environ.get("START_HOME_DELETE_TIME", "300"))  # bot's /start home message is deleted after this many seconds (default: 5 minutes)
 CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", f"{script.CAPTION}")   # Custom caption for files
 BATCH_FILE_CAPTION = environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION) # Custom caption for batch files
